@@ -76,6 +76,8 @@ def categorize_parameter(data, num_values, inflexion_points=None):
     # Find out Inflexion points if it is not provided
     if inflexion_points is None:
         inflexion_points = kde(data, num_values/1000)
+    categories = inflexion_points[::2, 0]
+    categories.reshape(1, categories.size)
 
 
 def test_kde():
@@ -102,6 +104,14 @@ def test_kde():
              linewidth=2)
     plt.show()
 
+
+def count(array, value):
+    """
+    :param array: a numpy nd array
+    :param value: a value to be counted in the array
+    :return: count of the value
+    """
+    return (np.where(array == value)[0]).size
 
 if __name__ == "__main__":
     test_kde()
