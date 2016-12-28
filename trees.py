@@ -60,26 +60,50 @@ class Branch:
         self.branches = []
 
 
-def grow_tree(data, outcomes, tree_type="cart"):
+def grow_tree(data, outcomes, tree_type="cart", parameter_values=None,
+              outcome_values=None):
     """
     :param data:
     :param outcomes:
     :param tree_type:
+    :param parameter_values:
+    :param outcome_values:
     :return:
     """
     if data.shape[0] != outcomes.size:
         raise Exception("Mismatch in the number of data samples and outcomes")
 
-    # TODO: need to add logic to create metadata for data and pass along the
+    if parameter_values is None:
+        parameter_values = []
+        for param in range(data.shape[1]):
+            parameter_values.append(np.unique(data[:, param]))
+
+    if outcome_values is None:
+        outcome_values = np.unique(outcomes)
+    if data.shape[1] != len(parameter_values):
+        raise Exception("Number of possible parameters is not equal to number "
+                        "of parameters in data")
+
     # list of variables
-    return _grow_tree(data, outcomes, TYPES[tree_type])
+    return _grow_tree(data, outcomes, TYPES[tree_type], parameter_values
+                      , outcome_values)
 
 
-def _grow_tree(data, outcomes, impurity_function):
+def _grow_tree(data, outcomes, impurity_function, parameter_values,
+               outcome_values):
     """
     :param data:
     :param outcomes:
     :param impurity_function:
+    :param parameter_values:
+    :param outcome_values:
     :return:
     """
-    pass
+    max_gain = 0
+    gain_parameter_index = None
+
+    # Calculate the impurity of the current node
+    parent_impurity = impurity_function(outcomes, outcome_values)
+
+    for index in range(data.shape[1]):
+        pass
