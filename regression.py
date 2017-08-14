@@ -117,12 +117,12 @@ class LogisticRegression:
         """
         # Validation data set extracted from the training data
         X, Y = shuffle(X, Y)
-        Xvalid, Yvalid, X, Y = split_data(X, Y, validation_frac)
+        # Xvalid, Yvalid, X, Y = split_data(X, Y, validation_frac)
         N, D = X.shape
 
         # Make sure Y and Yvalid are column vectors
         Y.shape = [Y.size, 1]
-        Yvalid.shape = [Yvalid.size, 1]
+        # Yvalid.shape = [Yvalid.size, 1]
 
         # Initialize the weights W and the bias b to zero
         W = np.zeros(shape=(D, 1), dtype=np.float32)
@@ -136,8 +136,8 @@ class LogisticRegression:
 
         for i in range(epochs):
 
-            if i % 100 == 0:
-                print(".", end="")
+            # if i % 100 == 0:
+            #    print(".", end="")
 
             # Do forward propagation to calculate P(Y|X)
             pY = sigmoid(X.dot(W) + bias)
@@ -149,18 +149,21 @@ class LogisticRegression:
             # Using the validation data, compute P(Y|X_valid)
             # Compute the sigmoid costs and append to array costs
             # Check to set best_validation_error
-            pYvalid = sigmoid(Xvalid.dot(W) + bias)
+            '''pYvalid = sigmoid(Xvalid.dot(W) + bias)
             cost = cross_entropy_loss(Yvalid, pYvalid)
             costs.append(cost)
-
+            
             pYvalid = np.round(pYvalid)
             error = error_rate(Yvalid, pYvalid)
             errors.append(error)
-
+            
             if error < best_validation_error:
                 best_validation_error = error
                 self.W = np.copy(W)
-                self.bias = bias
+                self.bias = bias'''
+
+        self.W = np.copy(W)
+        self.bias = bias
 
         print("\n")
 

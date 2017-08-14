@@ -94,7 +94,8 @@ def split_data(X, Y, split_frac):
     """
     if X.shape[0] != Y.size:
         raise Exception("Number of rows in X and Y should be equal")
-    split_index = np.round(Y.size * split_frac)
+    split_index = int(np.round(Y.size * split_frac))
+    print(split_index)
     return X[:split_index, :], Y[:split_index], X[split_index:, :], \
         Y[split_index:]
 
