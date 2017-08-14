@@ -1,7 +1,9 @@
-__author__ = "Kantha Girish"
 
 import numpy as np
 from scipy.stats import norm
+
+
+MIN_FLOAT = np.finfo(np.float64).eps
 
 
 def kde(data, resolution):
@@ -58,3 +60,74 @@ def categorize_parameter(data, num_values, inflexion_points=None):
     if inflexion_points is None:
         inflexion_points = kde(data, num_values/1000)
 
+
+def get_squared_error(Y, XX, W):
+    """
+    :param Y: numpy 1D array dependent values
+    :param XX: numpy 2D array of data
+    :param W: numpy 1D array of co-efficients
+    :return: averaged least squares error
+    """
+    return np.mean((Y - XX.dot(W))**2)
+
+
+def shuffle(X, Y):
+    """
+    :param X:
+    :param Y:
+    :return:
+    """
+    if X.shape[0] != Y.size:
+        raise Exception("Number of rows in X and Y should be equal")
+    index = np.arange(Y.size)
+    np.random.shuffle(index)
+    return X[index, :], Y[index]
+
+
+def split_data(X, Y, split_frac):
+    """
+    :param X: numpy 1D/2D array of data
+    :param Y: numpy 1D array of class labels corresponding to the data in X.
+            Number of of rows in Y should be same as in X
+    :param split_frac: split fraction between (0,1)
+    :return: X_left_half, Y_left_half, X_right_half, Y_right_half
+    """
+    if X.shape[0] != Y.size:
+        raise Exception("Number of rows in X and Y should be equal")
+    split_index = np.round(Y.size * split_frac)
+    return X[:split_index, :], Y[:split_index], X[split_index:, :], \
+        Y[split_index:]
+
+
+def sigmoid(X):
+    """
+    :param X: numpy 1D/2D array of data
+    :return: sigmoid of X
+    """
+    return (1 / (1 + np.exp(-X))).reshape(X.size, 1)
+
+
+def cross_entropy_loss(T, Y):
+    """
+    :param T: numpy 1D array of target labels
+    :param Y: numpy 1D array of predicted probabilities
+    :return:
+    """
+    Y[Y == 1] = 1 - MIN_FLOAT
+    Y[Y == 0] = MIN_FLOAT
+
+    # Make sure shapes match
+    T.shape = (T.size, 1)
+    Y.shape = (Y.size, 1)
+    return np.mean(-(T*np.log(Y) + (1-T)*np.log(1-Y)))
+
+
+def error_rate(targets, predictions):
+    """
+    :param targets: numpy 1D array of target labels
+    :param predictions: numpy 1D array of predicted labels
+    :return: error rate in prediction
+    """
+    targets.shape = [targets.size, 1]
+    predictions.shape = [predictions.size, 1]
+    return np.mean(targets != predictions)
