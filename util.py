@@ -94,6 +94,7 @@ def split_data(X, Y, split_frac):
     """
     if X.shape[0] != Y.size:
         raise Exception("Number of rows in X and Y should be equal")
+    X, Y = shuffle(X, Y)
     split_index = int(np.round(Y.size * split_frac))
     print(split_index)
     return X[:split_index, :], Y[:split_index], X[split_index:, :], \
@@ -118,9 +119,9 @@ def cross_entropy_loss(T, Y):
     Y[Y == 0] = MIN_FLOAT
 
     # Make sure shapes match
-    T.shape = (T.size, 1)
-    Y.shape = (Y.size, 1)
-    return np.mean(-(T*np.log(Y) + (1-T)*np.log(1-Y)))
+    T.shape = [T.size, 1]
+    Y.shape = [Y.size, 1]
+    return -np.mean(T*np.log(Y) + (1-T)*np.log(1-Y))
 
 
 def error_rate(targets, predictions):

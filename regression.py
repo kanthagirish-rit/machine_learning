@@ -1,55 +1,46 @@
 """
 file: regression.py
 author: Kantha Girish G
-description: Implementation of Regression for line/Curve fitting and Logistic
+description: Implementation of Regression for line fitting and Logistic
 Regression for classification
 """
 
 import numpy as np
 
-from util import get_squared_error, shuffle, split_data, sigmoid \
+from util import get_squared_error, split_data, sigmoid \
     , cross_entropy_loss, error_rate
 
 
 class Regression:
     """
-    Implementation of Regression, line/curve fitting
+    Implementation of Regression, line fitting
     """
 
-    def __init__(self, W=None, polynomial_order=None):
+    def __init__(self, W=None):
         self.Weights = W
-        self.polynomial_order = polynomial_order
 
-    def train(self, X, Y, polynomial_order, alpha=0.1e-4, epochs=500,
-            W_init=None):
+    def train(self, X, Y, alpha=0.1e-4, epochs=500, W_init=None):
         """
-        :param X: numpy 1D array or list, parameter on which Y is dependent on
-        :param Y: numpy 1D array or list, dependent values
-        :param polynomial_order: order of the polynomial to use for
-                function fitting
+        :param X: numpy 1D/2D array of data, parameter(s) on which Y is
+        dependent on
+        :param Y: numpy 1D array, dependent values
         :param alpha: learning rate
         :param epochs: number of steps to repeat for convergence
         :return: a python list of errors computed for all the epochs.
         """
-        self.polynomial_order = polynomial_order
 
-        if type(X) == list:
-            X = np.array(X)
-        if type(Y) == list:
-            Y = np.array(Y)
+        if X.ndim == 1:
+            X.shape = [X.size, 1]
 
-        m = X.size
-        n = polynomial_order + 1
-        XX = np.ones(shape=(m, n))
+        m = X.shape[0]
+        print(X.shape)
+        XX = np.hstack((np.ones(shape=(m, 1)), X))
 
-        Y.shape = (Y.size, 1)
-
-        for i in range(1, n):
-            XX[:, i] = X ** i
+        Y.shape = [Y.size, 1]
 
         # initialize random values for weights
         if W_init is None:
-            W = np.zeros(shape=(n, 1))
+            W = np.zeros(shape=(XX.shape[1], 1))
         else:
             W = W_init
             W.shape = (W.size, 1)
@@ -57,8 +48,11 @@ class Regression:
         # Perform gradient descent
         best_error = np.inf
         errors = []
+        print(XX.shape)
+        print(Y.shape)
+        print(W.shape)
         for step in range(epochs):
-            grad = self.get_gradients(Y, XX, W)
+            grad = 2 / Y.size * XX.transpose().dot((XX.dot(W) - Y))
             W -= alpha * grad
             error = get_squared_error(Y, XX, W)
             errors.append(error)
@@ -68,30 +62,17 @@ class Regression:
 
         return errors
 
-    def get_gradients(self, Y, XX, W):
-        """
-        :param Y: numpy 1D array dependent values
-        :param XX: numpy 2D array of data
-        :param W: numpy 1D array of co-efficients
-        :return: averaged gradients for the current model
-        """
-        return 2 / Y.size * XX.transpose().dot((XX.dot(W) - Y))
-
     def predict(self, X):
         """
-        :param X:
-        :param model:
-        :return:
+        :param X: numpy 1D/2D array of data for which prediction of
+                regression line is required.
+        :return: numpy 1D array of values predicted for each row in X.
         """
-        if type(X) == list:
-            X = np.array(X)
+        if X.ndim == 1:
+            X.shape = [X.size, 1]
 
         m = X.size
-        n = self.Weights.size
-        XX = np.ones(shape=(m, n))
-
-        for i in range(1, n):
-            XX[:, i] = X ** i
+        XX = np.hstack((np.ones(shape=(m, 1)), X))
 
         return XX.dot(self.Weights)
 
@@ -116,13 +97,14 @@ class LogisticRegression:
         :return: best validation error
         """
         # Validation data set extracted from the training data
-        X, Y = shuffle(X, Y)
-        # Xvalid, Yvalid, X, Y = split_data(X, Y, validation_frac)
+        Xvalid, Yvalid, X, Y = split_data(X, Y, validation_frac)
         N, D = X.shape
+
+        print("Training data size: ({}, {})".format(N, D))
 
         # Make sure Y and Yvalid are column vectors
         Y.shape = [Y.size, 1]
-        # Yvalid.shape = [Yvalid.size, 1]
+        Yvalid.shape = [Yvalid.size, 1]
 
         # Initialize the weights W and the bias b to zero
         W = np.zeros(shape=(D, 1), dtype=np.float32)
@@ -132,12 +114,11 @@ class LogisticRegression:
         costs = []
         errors = []
         best_validation_error = 1
-        min_cost = np.inf
 
         for i in range(epochs):
 
-            # if i % 100 == 0:
-            #    print(".", end="")
+            if i % 100 == 0:
+                print(i)
 
             # Do forward propagation to calculate P(Y|X)
             pY = sigmoid(X.dot(W) + bias)
@@ -146,34 +127,44 @@ class LogisticRegression:
             W -= step_size * (X.transpose().dot(pY - Y) / N).reshape(D, 1)
             bias -= step_size * np.mean(pY - Y)
 
-            # Using the validation data, compute P(Y|X_valid)
             # Compute the sigmoid costs and append to array costs
             # Check to set best_validation_error
-            '''pYvalid = sigmoid(Xvalid.dot(W) + bias)
-            cost = cross_entropy_loss(Yvalid, pYvalid)
+            cost = cross_entropy_loss(Y, pY)
             costs.append(cost)
-            
-            pYvalid = np.round(pYvalid)
-            error = error_rate(Yvalid, pYvalid)
+
+            # Using the validation data, compute P(Y|X_valid)
+            pYvalid = sigmoid(Xvalid.dot(W) + bias)
+            error = error_rate(Yvalid, np.round(pYvalid))
             errors.append(error)
-            
+
             if error < best_validation_error:
                 best_validation_error = error
                 self.W = np.copy(W)
-                self.bias = bias'''
+                self.bias = bias
 
         self.W = np.copy(W)
         self.bias = bias
 
         print("\n")
 
-        return errors
+        return costs, errors
 
     def predict(self, X):
         """
-        :param X: numpy 2D array (M x D) of data for which predictions are to be made.
+        :param X: numpy 2D array (M x D) of data for which predictions
+                are to be made.
         :return: predicted probabilities pY and class labels
         """
         pY = sigmoid(X.dot(self.W) + self.bias)
-        return pY, np.round(pY)
+        return np.round(pY)
 
+    def score(self, X, Y):
+        """
+        :param X: numpy 2D array (M x D) of data for which predictions
+                are to be made.
+        :param Y: numpy 1D array (M x 1) of true labels corresponding to data in
+                X
+        :return: Accuracy of prediction on X using the trained model
+        """
+        cY = self.predict(X)
+        return 1 - error_rate(Y, cY)
