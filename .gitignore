@@ -1,1 +1,7 @@
-.idea/
+.*
+!/.gitignore
+*.pyc
+*.jpg
+*.txt
+*.csv
+test*
