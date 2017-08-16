@@ -11,7 +11,7 @@ from util import get_squared_error, split_data, sigmoid \
     , cross_entropy_loss, error_rate
 
 
-class Regression:
+class LinearRegression:
     """
     Implementation of Regression, line fitting
     """
@@ -141,9 +141,6 @@ class LogisticRegression:
                 best_validation_error = error
                 self.W = np.copy(W)
                 self.bias = bias
-
-        self.W = np.copy(W)
-        self.bias = bias
 
         print("\n")
 
