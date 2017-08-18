@@ -1,154 +1,98 @@
-__author__ = "Kantha Girish"
-
+"""
+file: dtree.py
+author: Kantha Girish
+description: Implements decision tree with entropy information gain
+"""
 import numpy as np
-import matplotlib.pyplot as plt
 
-from util import count
-
-TYPES = {}
+from util import entropy, probabilities
 
 
-def entropy_impurity(outcomes, unique_outcomes):
+class DTree:
     """
-    :param outcomes: numpy 1d-array
-    :param unique_outcomes: numpy 1d-array
-    :return: computed entropy impurity of the outcomes
+    Implementation of Decision tree
     """
-    if not outcomes.size > 0 or not unique_outcomes.size > 0:
-        raise IndexError("Inputs cannot be empty arrays")
-    counts = np.zeros(shape=(unique_outcomes.size,))
-    for idx in range(unique_outcomes):
-        counts[idx] = count(outcomes, unique_outcomes[idx])
-    return entropy(counts)
-
-
-def entropy(counts):
-    """
-    :param counts: numpy 1d-array
-    :return: entropy
-    """
-    if (np.where(counts < 0)[0]).size > 0:
-        raise ValueError("counts cannot be negative")
-
-    p = counts / np.sum(counts)
-
-    # replace zero counts with 1 to avoid log(0)
-    p[np.where(p == 0)[0]] = 1
-
-    return np.sum(-p * np.log2(p))
-
-
-def gini_impurity(outcomes, unique_outcomes):
-    """
-    :param outcomes: numpy 1d-array
-    :param unique_outcomes: numpy 1d-array
-    :return: computed gini impurity
-    """
-    if not outcomes.size > 0 or not unique_outcomes.size > 0:
-        raise IndexError("Inputs cannot be empty arrays")
-    return 1 - sum([(np.sum(outcomes == unique_outcomes[idx]) / outcomes.size) ** 2
-                    for idx in range(unique_outcomes.size)])
-
-
-class Tree:
-    """
-    """
-    __slots__ = ["root", "impurity_function", "data", "outcomes",
-                 "outcome_values", "rows", "columns"]
-
-    def __init__(self, impurity_function, data, outcomes, outcome_values):
+    def __init__(self):
         self.root = None
-        self.impurity_function = impurity_function
-        self.data = data
-        self.outcomes = outcomes
-        self.outcome_values = outcome_values
-        self.rows, self.columns = self.data.shape
 
-    def _grow(self, rows, columns, value=None):
+    def _gain(self, X, Y):
         """
-        :param rows:
-        :param columns:
-        :param value:
-        :return:
+        :param X: numpy 1D array, data samples
+        :param Y: numpy 1D array, class labels
+        :return: computed information gain
         """
+        entropy_total = entropy(Y)
+        entropy_subsets = 0
 
-        # Create node and populate fields
-        node = Node(value)
-        previous_prob = 0
-        for outcome in self.outcome_values:
-            node.probabilities[outcome] = np.where(self.outcomes[rows] == outcome)[0]/rows.size
-            if node.probabilities[outcome] > previous_prob:
-                node.p_class = outcome
+        unique_values = np.unique(X)
+        for value in unique_values:
+            subset = Y[np.where(X == value)[0]]
+            entropy_subsets += (subset.size / Y.size) * entropy(subset)
 
-        if self.root is None:
-            self.root = node
+        return entropy_total - entropy_subsets
 
-        # Calculate the impurity of the current node
-        node_impurity = self.impurity_function(self.outcomes[rows, :], self.outcome_values)
-
-        children_impurity = 0
-        information_gains = np.zeros(shape=(columns.size, 1))
-        for index in range(columns):
-            unique_values = np.unique(self.data[rows, columns[index]])
-            for value in unique_values:
-                value_indices = np.where(self.data[rows, columns[index]] ==
-                                         value)[0]
-                value_probability = value_indices.size / rows.size
-                value_impurity = self.impurity_function(self.outcomes[rows][value_indices],
-                                                        self.outcome_values)
-                children_impurity += value_probability * value_impurity
-            information_gains[index] = node_impurity - children_impurity
-
-        max_gain = np.amax(information_gains)
-        gain_column_index = np.argmax(information_gains)
-
-        node.next_node = columns[gain_column_index]
-
-    def grow(self):
+    def _best_attribute(self, X, Y, attributes):
         """
-        :return:
+        :param X: numpy 2D array, data samples
+        :param Y: numpy 1D array, class labels
+        :param attributes: list of attributes in the data
+        :return: The attribute with highest information gain
         """
-        pass
+        best_gain = -np.inf
+        best_attr = None
+        for attr in attributes:
+            g = self._gain(X[:, attr], Y)
+            if g > best_gain:
+                best_gain = g
+                best_attr = attr
+        return best_attr
+
+    def fit(self, X, Y, attributes, depth, value=None):
+        """
+        :param X: numpy 2D array, data samples
+        :param Y: numpy 1D array, class labels
+        :param attributes: list of attributes in the data
+        :param depth: maximum depth of the tree
+        :param value: possible value of the attribute for the current node/branch
+        :return: a decision tree built to the chosen depth
+        """
+        self.root = self._grow_tree(X, Y, attributes, depth, value=None)
+
+    def _grow_tree(self, X, Y, attributes, depth, value=None):
+        # Construct a node
+        node = Node()
+        node.probs = probabilities(Y)
+        node.branch_value = value
+
+        # Stop criteria
+        if depth == 0 or entropy(Y) == 0 or len(attributes) == 0:
+            return node
+
+        # Find the best attribute
+        attr = self._best_attribute(X, Y, attributes)
+        attributes.remove(attr)
+        node.next_attr = attr
+
+        # Recurse to construct children for the node
+        values = np.unique(X[:, attr])
+        for val in values:
+            subset_indices = np.where(X[:, attr] == val)[0]
+            node.branches[val] = self._grow_tree(X[subset_indices, :], Y[subset_indices]
+                                                 , attributes, depth - 1, val)
+        return node
 
 
 class Node:
     """
+    Node class to build a decision tree
     """
-    __slots__ = ["value", "branches", "probabilities", "next_node", "is_leaf", "p_class"]
+    def __init__(self):
+        self.probs = {}
+        self.branches = {}
+        self.next_attr = None
+        self.branch_value = None
 
-    def __init__(self, value):
-        self.value = value
-        self.branches = []
-        self.probabilities = {}
-        self.next_node = None
-        self.is_leaf = False
-        self.p_class = None
+    def __str__(self):
+        return "answer: " + str(self.branch_value) + "\n" + "p: " + str(self.probs) + "\n" + \
+               "next question: " + str(self.next_attr)
 
-
-def grow_tree(data, outcomes, tree_type="cart", parameter_values=None,
-              outcome_values=None):
-    """
-    :param data:
-    :param outcomes:
-    :param tree_type:
-    :param parameter_values:
-    :param outcome_values:
-    :return:
-    """
-    if data.shape[0] != outcomes.size:
-        raise Exception("Mismatch in the number of data samples and outcomes")
-
-    if parameter_values is None:
-        parameter_values = []
-        for param in range(data.shape[1]):
-            parameter_values.append(np.unique(data[:, param]))
-
-    if outcome_values is None:
-        outcome_values = np.unique(outcomes)
-    if data.shape[1] != len(parameter_values):
-        raise Exception("Number of possible parameters is not equal to number "
-                        "of parameters in data")
-
-    # list of variables
-    tree = Tree(TYPES[tree_type], data, outcomes, outcome_values)
-    tree.grow()

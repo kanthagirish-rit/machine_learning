@@ -113,5 +113,34 @@ def count(array, value):
     """
     return (np.where(array == value)[0]).size
 
+
+def probabilities(Y):
+    """
+    :param Y: numpy 1D array, class labels
+    :return: computed probabilities for each class in Y as a dictionary
+            p = {
+                    class1: probability_value,
+                    class2: probability_value
+                    .
+                    .
+                }
+    """
+    unique_labels = np.unique(Y)
+    p = {}
+    for val in unique_labels:
+        p[val] = (np.where(Y == val)[0]).size / Y.size
+    return p
+
+
+def entropy(Y):
+    """
+    :param Y: numpy 1D array, class labels
+    :return: entropy/information
+    """
+
+    p = probabilities(Y)
+    return np.sum([-i * np.log2(i) for i in p.values()])
+
+
 if __name__ == "__main__":
     test_kde()
