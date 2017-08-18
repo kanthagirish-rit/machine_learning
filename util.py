@@ -1,7 +1,9 @@
 
 import numpy as np
 from scipy.stats import norm
-import matplotlib.pyplot as plt
+
+
+MIN_FLOAT = np.finfo(np.float64).eps
 
 
 def kde(data, resolution=None, return_kde=False):
@@ -79,40 +81,6 @@ def categorize_parameter(data, num_values, inflexion_points=None):
     categories.reshape(1, categories.size)
 
 
-def test_kde():
-    """
-    :return:
-    """
-    data1 = norm.rvs(10, 2, size=100)
-    data2 = norm.rvs(0, 3, size=100)
-    data3 = norm.rvs(20, 2, size=100)
-    data4 = norm.rvs(30, 3, size=100)
-    data5 = norm.rvs(40, 3, size=100)
-    data = np.concatenate((data1, data2, data3, data4, data5))
-
-    inflexion_points, range_, kdest = kde(data, return_kde=True)
-
-    print(inflexion_points)
-    plt.subplot(211)
-    plt.hist(data, bins=100, color='b')
-
-    plt.subplot(212)
-    plt.plot(range_, kdest, color='g', linewidth=2)
-
-    plt.plot(inflexion_points[:, 0], inflexion_points[:, 1], color='k',
-             linewidth=2)
-    plt.show()
-
-
-def count(array, value):
-    """
-    :param array: a numpy nd array
-    :param value: a value to be counted in the array
-    :return: count of the value
-    """
-    return (np.where(array == value)[0]).size
-
-
 def probabilities(Y):
     """
     :param Y: numpy 1D array, class labels
@@ -138,7 +106,7 @@ def entropy(Y):
     """
 
     p = probabilities(Y)
-    return np.sum([-i * np.log2(i) for i in p.values()])
+    return -np.sum([i * np.log2(i) for i in p.values()])
 
 
 def get_squared_error(Y, XX, W):
@@ -213,3 +181,14 @@ def error_rate(targets, predictions):
     targets.shape = [targets.size, 1]
     predictions.shape = [predictions.size, 1]
     return np.mean(targets != predictions)
+
+
+def accuracy(targets, predictions):
+    """
+        :param targets: numpy 1D array of target labels
+        :param predictions: numpy 1D array of predicted labels
+        :return: error rate in prediction
+        """
+    targets.shape = [targets.size, 1]
+    predictions.shape = [predictions.size, 1]
+    return np.mean(targets == predictions)
