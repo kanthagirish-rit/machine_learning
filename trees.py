@@ -5,7 +5,7 @@ description: Implements decision trees and forests for classification and regres
 """
 import numpy as np
 
-from util import entropy, probabilities
+from util import entropy, probabilities, get_best_class_prob
 
 
 class ClassificationTree:
@@ -108,6 +108,7 @@ class ClassificationTree:
         # Construct a node
         node = Node()
         node.probs = probabilities(Y)
+        node.class_ = get_best_class(node.probs)
         node.branch_value = value
 
         # Stop criteria
@@ -170,16 +171,55 @@ class ClassificationTree:
                         current = current.branches["left-br"]
                     else:
                         current = current.branches["right-br"]
-            for key in current.probs:
-                if probs[row, 0] < current.probs[key]:
-                    probs[row, 0] = current.probs[key]
-                    cY[row, 0] = key
+            cY[row, 0], probs[row, 0] = get_best_class_prob(current.probs)
         if return_probs:
             return cY, probs
         else:
             return cY
 
-    # TODO: implement pruning mechanism
+    def prune_tree(self, X, Y):
+        """
+        :param X: numpy 2D array of data samples
+        :param Y: numpy 1D array of class labels
+        :return: None
+
+        This method implements Reduced error pruning technique on the decision that is
+        built. The tree is pruned using the given data samples.
+        """
+        for i in range(Y.size):
+            self._create_re_tree(X[i, :], Y[i], self.root)
+        self._prune_tree(self.root)
+
+    def _prune_tree(self, node):
+        """
+        :param node: current node of the decision tree
+        :return: classification error of the current node
+
+        This method prunes the tree by recursively calling itself. This is a helper method
+        used by prune_tree() to prune the decision tree that is built.
+        """
+        removable_branches = []
+        for key, value in node.branches.iteritems():
+            subtree_error = self._prune_tree(value)
+            if node.error <= subtree_error:
+                removable_branches.append(key)
+
+        for branch in removable_branches:
+            del(node.branches[branch])
+        return node.error
+
+    def _create_re_tree(self, X, Y, node):
+        """
+        :param X:
+        :param Y:
+        :param node:
+        :return:
+        """
+        while node.next_attr is not None:
+            if node.class_ != Y:
+                node.error += 1
+            branch_value = X[node.next_attr]
+            node = node.branches[branch_value]
 
 
 # TODO: Implement random forests
@@ -194,5 +234,7 @@ class Node:
         self.branches = {}
         self.next_attr = None
         self.branch_value = None
-        self.gain = None
+        self.gain = 0
         self.split_value = None
+        self.error = 0
+        self.class_ = None

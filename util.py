@@ -185,10 +185,29 @@ def error_rate(targets, predictions):
 
 def accuracy(targets, predictions):
     """
-        :param targets: numpy 1D array of target labels
-        :param predictions: numpy 1D array of predicted labels
-        :return: error rate in prediction
-        """
+    :param targets: numpy 1D array of target labels
+    :param predictions: numpy 1D array of predicted labels
+    :return: error rate in prediction
+    """
     targets.shape = [targets.size, 1]
     predictions.shape = [predictions.size, 1]
     return np.mean(targets == predictions)
+
+
+def get_best_class_prob(probs):
+    """
+    :param probs: a dictionary containing class labels and probabilities as key value pairs
+            as shown below.
+            probs = {
+                "class_1" : prob1,
+                "class_2" : prob2
+            }
+    :return:
+    """
+    prob = -np.inf
+    class_ = None
+    for key in probs:
+        if prob < probs[key]:
+            prob = probs[key]
+            class_ = key
+    return class_, prob
