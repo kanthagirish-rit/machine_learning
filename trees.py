@@ -8,6 +8,9 @@ import numpy as np
 from util import entropy, probabilities, get_best_class_prob
 
 
+L_BRANCH = "left-br"
+R_BRANCH = "right-br"
+
 class ClassificationTree:
     """
     Implementation of Decision tree using entropy for computing information gain. The
@@ -108,7 +111,7 @@ class ClassificationTree:
         # Construct a node
         node = Node()
         node.probs = probabilities(Y)
-        node.class_ = get_best_class(node.probs)
+        node.class_, _ = get_best_class_prob(node.probs)
         node.branch_value = value
 
         # Stop criteria
@@ -140,10 +143,10 @@ class ClassificationTree:
         elif self.attr_dtypes[attr] == float:
             node.split_value = split_value
             left_subset = np.where(X[:, attr] < split_value)[0]
-            node.branches["left-br"] = self._grow_tree(X[left_subset, :], Y[left_subset]
+            node.branches[L_BRANCH] = self._grow_tree(X[left_subset, :], Y[left_subset]
                                                        , attributes, depth, None)
             right_subset = np.where(X[:, attr] >= split_value)[0]
-            node.branches["right-br"] = self._grow_tree(X[right_subset, :], Y[right_subset]
+            node.branches[R_BRANCH] = self._grow_tree(X[right_subset, :], Y[right_subset]
                                                         , attributes, depth, None)
         return node
 
@@ -160,17 +163,23 @@ class ClassificationTree:
         """
         cY = np.zeros(shape=(X.shape[0], 1))
         probs = np.zeros(shape=(X.shape[0], 1))
+
+        # Get the class labels for each sample by traversing down the tree
         for row in range(X.shape[0]):
             current = self.root
             while current.next_attr is not None:
                 value = X[row, current.next_attr]
                 if current.split_value is None:
+                    if value not in current.branches:   # branch is pruned
+                        break
                     current = current.branches[value]
                 else:
-                    if value < current.split_value:
-                        current = current.branches["left-br"]
-                    else:
-                        current = current.branches["right-br"]
+                    if value < current.split_value and L_BRANCH in current.branches:
+                        current = current.branches[L_BRANCH]
+                    elif value >= current.split_value and R_BRANCH in current.branches:
+                        current = current.branches[R_BRANCH]
+                    else:       # branch is pruned
+                        break
             cY[row, 0], probs[row, 0] = get_best_class_prob(current.probs)
         if return_probs:
             return cY, probs
@@ -187,7 +196,7 @@ class ClassificationTree:
         built. The tree is pruned using the given data samples.
         """
         for i in range(Y.size):
-            self._create_re_tree(X[i, :], Y[i], self.root)
+            self._create_re_tree(X[i, :], Y[i])
         self._prune_tree(self.root)
 
     def _prune_tree(self, node):
@@ -199,7 +208,7 @@ class ClassificationTree:
         used by prune_tree() to prune the decision tree that is built.
         """
         removable_branches = []
-        for key, value in node.branches.iteritems():
+        for key, value in node.branches.items():
             subtree_error = self._prune_tree(value)
             if node.error <= subtree_error:
                 removable_branches.append(key)
@@ -208,18 +217,27 @@ class ClassificationTree:
             del(node.branches[branch])
         return node.error
 
-    def _create_re_tree(self, X, Y, node):
+    def _create_re_tree(self, X, Y):
         """
-        :param X:
-        :param Y:
-        :param node:
-        :return:
+        :param X: numpy 1D array, one instance of data
+        :param Y: scalar, class corresponding to the instance X
+        :return: None
+
+        This method modifies the tree created to include classification errors at each node.
+        The error would be used to Prune the tree.
         """
+        node = self.root
         while node.next_attr is not None:
             if node.class_ != Y:
                 node.error += 1
             branch_value = X[node.next_attr]
-            node = node.branches[branch_value]
+            if node.split_value is None:
+                node = node.branches[branch_value]
+            else:
+                if branch_value < node.split_value:
+                    node = node.branches[L_BRANCH]
+                else:
+                    node = node.branches[R_BRANCH]
 
 
 # TODO: Implement random forests
