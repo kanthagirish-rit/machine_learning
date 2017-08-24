@@ -1,7 +1,7 @@
 """
 file: regression.py
 author: Kantha Girish G
-description: Implementation of Regression for line fitting and Logistic
+description: Implementation of LinearRegression for line fitting and Logistic
 Regression for classification
 """
 
@@ -13,7 +13,9 @@ from util import get_squared_error, split_data, sigmoid \
 
 class LinearRegression:
     """
-    Implementation of Regression, line fitting
+    Implementation of Regression, line fitting. The implementation fits a linear model to
+    the given data points. Data can be single or multi-featured. Gradient descent with least
+    squares error is used for parameter learning. The implementation adds intercept parameter.
     """
 
     def __init__(self, W=None):
@@ -27,6 +29,9 @@ class LinearRegression:
         :param alpha: learning rate
         :param epochs: number of steps to repeat for convergence
         :return: a python list of errors computed for all the epochs.
+
+        This method fits a linear model for the given set of data X to best represent the
+        target Y.
         """
 
         if X.ndim == 1:
@@ -67,7 +72,11 @@ class LinearRegression:
         :param X: numpy 1D/2D array of data for which prediction of
                 regression line is required.
         :return: numpy 1D array of values predicted for each row in X.
+
+        This method uses trained parameters to predict/estimate target values corresponding
+        to the values in data X.
         """
+
         if X.ndim == 1:
             X.shape = [X.size, 1]
 
@@ -79,7 +88,9 @@ class LinearRegression:
 
 class LogisticRegression:
     """
-    Implementation of Logistic Regression classifier
+    Implementation of Logistic Regression classifier using gradient descent optimization for
+    parameter learning. The implementation uses a linear model and adds intercept
+    automatically.
     """
 
     def __init__(self, W=None, b=None):
@@ -89,12 +100,17 @@ class LogisticRegression:
     def train(self, X, Y, step_size=10e-5, epochs=10000, validation_frac=0.1):
         """
         :param X: data, numpy 2D array
-        :param Y: labels, numpy 1D array
+        :param Y: labels, numpy 1D array of target labels, only two possible classes.
         :param step_size: size of the step for gradient descent
         :param epochs: number of max iterations
         :param validation_frac: Fraction of data to use for validation,
                 default: 10%
         :return: best validation error
+
+        This method fits a model with a linear decision boundary to classify the data
+        samples X by learning parameters using Gradient Descent optimizer. The training data X
+        is further split into training and validation data. The parameters corresponding to
+        lowest error on validation data over the epochs, are stored as trained parameters.
         """
         # Validation data set extracted from the training data
         Xvalid, Yvalid, X, Y = split_data(X, Y, validation_frac)
@@ -146,14 +162,21 @@ class LogisticRegression:
 
         return costs, errors
 
-    def predict(self, X):
+    def predict(self, X, return_probs=False):
         """
         :param X: numpy 2D array (M x D) of data for which predictions
                 are to be made.
-        :return: predicted probabilities pY and class labels
+        :param return_probs: Boolean indicating whether to return predicted probabilities
+        :return: numpy 1D array of class labels[, predicted probabilities ]
+
+        This method returns the predicted class labels for the given data samples X using
+        trained parameters.
         """
         pY = sigmoid(X.dot(self.W) + self.bias)
-        return np.round(pY)
+        if return_probs:
+            return np.round(pY), pY
+        else:
+            return np.round(pY)
 
     def score(self, X, Y):
         """
